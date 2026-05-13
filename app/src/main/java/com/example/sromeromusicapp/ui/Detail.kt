@@ -1,2 +1,4 @@
-package com.example.sromeromusicapp.ui.theme
+package com.example.sromeromusicapp.ui
 
+class Detail {
+}

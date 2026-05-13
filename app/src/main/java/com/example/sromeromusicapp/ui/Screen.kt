@@ -31,7 +31,7 @@ import com.example.sromeromusicapp.ui.theme.*
 import kotlinx.coroutines.launch
 
 @Composable
-fun HomeScreen(navController: NavController) {
+fun Screen(navController: NavController) {
     var albums by remember { mutableStateOf<List<Album>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
@@ -167,7 +167,7 @@ fun HomeScreen(navController: NavController) {
 
         // ── MINI PLAYER ──
         currentAlbum?.let {
-            Player(album = it, modifier = Modifier.align(Alignment.BottomCenter))
+            Reproductor(album = it, modifier = Modifier.align(Alignment.BottomCenter))
         }
     }
 }
