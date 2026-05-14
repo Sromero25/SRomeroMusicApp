@@ -30,7 +30,7 @@ class MainActivity : ComponentActivity() {
                         startDestination = "home"
                     ) {
                         composable("home") {
-                            HomeScreen(navController = navController)
+                            Screen(navController = navController)
                         }
                         composable(
                             route = "detail/{albumId}",

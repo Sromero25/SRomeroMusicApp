@@ -1,5 +1,6 @@
 package com.example.sromeromusicapp.ui
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -20,11 +21,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.sromeromusicapp.model.Album
 import com.example.sromeromusicapp.model.RetrofitInstance
 import com.example.sromeromusicapp.ui.theme.*
@@ -38,25 +41,30 @@ fun Screen(navController: NavController) {
     var currentAlbum by remember { mutableStateOf<Album?>(null) }
     val scope = rememberCoroutineScope()
 
-    // Álbum hardcodeado para mostrar en el mini player al inicio (requerimiento del profesor)
+    val workingImageUrl = "https://upload.wikimedia.org/wikipedia/en/3/3b/Dark_Side_of_the_Moon.png"
+
     val hardcodedAlbum = Album(
         id = "69f90c5e2fa93270c1903690",
         title = "The Dark Side of the Moon",
         artist = "Pink Floyd",
-        description = "Album conceptual de 1973.",
-        image = "https://upload.wikimedia.org/wikipedia/en/3/3b/Dark_Side_of_the_Moon.png"
+        description = "Álbum conceptual de 1973.",
+        image = workingImageUrl
     )
 
     LaunchedEffect(Unit) {
         scope.launch {
             try {
-                albums = RetrofitInstance.api.getAlbums()
+                val apiAlbums = RetrofitInstance.api.getAlbums()
+                albums = apiAlbums.map { album ->
+                    album.copy(image = workingImageUrl)
+                }
                 currentAlbum = hardcodedAlbum
                 isLoading = false
             } catch (e: Exception) {
-                errorMsg = "Error al cargar álbumes: ${e.localizedMessage}"
+                errorMsg = "Error: ${e.localizedMessage}"
                 currentAlbum = hardcodedAlbum
                 isLoading = false
+                Log.e("Screen", "Error loading albums", e)
             }
         }
     }
@@ -67,7 +75,7 @@ fun Screen(navController: NavController) {
                 .fillMaxSize()
                 .padding(bottom = 72.dp)
         ) {
-            // ── HEADER ──
+            // HEADER
             item {
                 Box(
                     modifier = Modifier
@@ -89,9 +97,9 @@ fun Screen(navController: NavController) {
                             Icon(Icons.Default.Search, contentDescription = null, tint = Color.White)
                         }
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("Good Morning!", color = Color.White.copy(alpha = 0.85f), fontSize = 14.sp)
+                        Text("Wenas Papu", color = Color.White.copy(alpha = 0.85f), fontSize = 14.sp)
                         Text(
-                            "Juan Frausto",
+                            "Saulo Romero",
                             color = Color.White,
                             fontSize = 26.sp,
                             fontWeight = FontWeight.Bold
@@ -100,7 +108,7 @@ fun Screen(navController: NavController) {
                 }
             }
 
-            // ── ALBUMS (LazyRow) ──
+            // ALBUMS (LazyRow)
             item {
                 Spacer(modifier = Modifier.height(20.dp))
                 Row(
@@ -136,7 +144,7 @@ fun Screen(navController: NavController) {
                 }
             }
 
-            // ── RECENTLY PLAYED ──
+            // RECENTLY PLAYED
             item {
                 Spacer(modifier = Modifier.height(24.dp))
                 Row(
@@ -165,7 +173,7 @@ fun Screen(navController: NavController) {
             item { Spacer(modifier = Modifier.height(8.dp)) }
         }
 
-        // ── MINI PLAYER ──
+        // MINI PLAYER
         currentAlbum?.let {
             Reproductor(album = it, modifier = Modifier.align(Alignment.BottomCenter))
         }
@@ -184,7 +192,10 @@ fun AlbumCard(album: Album, onClick: () -> Unit) {
     ) {
         Box {
             AsyncImage(
-                model = album.image,
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(album.image)
+                    .crossfade(true)
+                    .build(),
                 contentDescription = album.title,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
