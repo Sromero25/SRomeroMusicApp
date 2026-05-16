@@ -14,13 +14,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
 import com.example.sromeromusicapp.model.Album
 import com.example.sromeromusicapp.ui.theme.DarkPlayer
 
@@ -37,21 +33,16 @@ fun Reproductor(album: Album, modifier: Modifier = Modifier) {
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(album.image)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
+            AlbumImage(
+                url = album.getFullImageUrl(),
                 modifier = Modifier
                     .size(44.dp)
                     .clip(RoundedCornerShape(8.dp))
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(album.title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1)
-                Text(album.artist, color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp, maxLines = 1)
+                Text(album.title ?: "Sin título", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1)
+                Text(album.artist ?: "Desconocido", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp, maxLines = 1)
             }
             Box(
                 modifier = Modifier

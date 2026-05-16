@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -26,12 +27,36 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.example.sromeromusicapp.model.Album
 import com.example.sromeromusicapp.model.RetrofitInstance
 import com.example.sromeromusicapp.ui.theme.*
 import kotlinx.coroutines.launch
+
+@Composable
+fun AlbumImage(url: String, modifier: Modifier = Modifier) {
+    SubcomposeAsyncImage(
+        model = ImageRequest.Builder(LocalContext.current)
+            .data(url)
+            .crossfade(true)
+            .build(),
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        modifier = modifier,
+        loading = {
+            Box(modifier = Modifier.fillMaxSize().background(Color(0xFF6A4BAB)))
+        },
+        error = {
+            Box(
+                modifier = Modifier.fillMaxSize().background(Color(0xFF6A4BAB)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.MusicNote, contentDescription = null, tint = Color.White.copy(alpha = 0.5f))
+            }
+        }
+    )
+}
 
 @Composable
 fun Screen(navController: NavController) {
@@ -41,24 +66,20 @@ fun Screen(navController: NavController) {
     var currentAlbum by remember { mutableStateOf<Album?>(null) }
     val scope = rememberCoroutineScope()
 
-    val workingImageUrl = "https://upload.wikimedia.org/wikipedia/en/3/3b/Dark_Side_of_the_Moon.png"
-
     val hardcodedAlbum = Album(
-        id = "69f90c5e2fa93270c1903690",
+        id = "darkside",
         title = "The Dark Side of the Moon",
         artist = "Pink Floyd",
         description = "Álbum conceptual de 1973.",
-        image = workingImageUrl
+        image = null
     )
 
     LaunchedEffect(Unit) {
         scope.launch {
             try {
                 val apiAlbums = RetrofitInstance.api.getAlbums()
-                albums = apiAlbums.map { album ->
-                    album.copy(image = workingImageUrl)
-                }
-                currentAlbum = hardcodedAlbum
+                albums = apiAlbums
+                if (currentAlbum == null) currentAlbum = hardcodedAlbum
                 isLoading = false
             } catch (e: Exception) {
                 errorMsg = "Error: ${e.localizedMessage}"
@@ -80,11 +101,7 @@ fun Screen(navController: NavController) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(PurplePrimary, PurpleLight)
-                            )
-                        )
+                        .background(Brush.verticalGradient(colors = listOf(PurplePrimary, PurpleLight)))
                         .padding(horizontal = 20.dp, vertical = 28.dp)
                 ) {
                     Column {
@@ -98,23 +115,16 @@ fun Screen(navController: NavController) {
                         }
                         Spacer(modifier = Modifier.height(16.dp))
                         Text("Wenas Papu", color = Color.White.copy(alpha = 0.85f), fontSize = 14.sp)
-                        Text(
-                            "Saulo Romero",
-                            color = Color.White,
-                            fontSize = 26.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text("Saulo Romero", color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
 
-            // ALBUMS (LazyRow)
+            // ALBUMS
             item {
                 Spacer(modifier = Modifier.height(20.dp))
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -137,7 +147,7 @@ fun Screen(navController: NavController) {
                         items(albums) { album ->
                             AlbumCard(album = album, onClick = {
                                 currentAlbum = album
-                                navController.navigate("detail/${album.id}")
+                                album.id?.let { navController.navigate("detail/$it") }
                             })
                         }
                     }
@@ -148,9 +158,7 @@ fun Screen(navController: NavController) {
             item {
                 Spacer(modifier = Modifier.height(24.dp))
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -164,7 +172,7 @@ fun Screen(navController: NavController) {
                 items(albums) { album ->
                     RecentlyPlayedItem(album = album, onClick = {
                         currentAlbum = album
-                        navController.navigate("detail/${album.id}")
+                        album.id?.let { navController.navigate("detail/$it") }
                     })
                     Spacer(modifier = Modifier.height(8.dp))
                 }
@@ -173,7 +181,6 @@ fun Screen(navController: NavController) {
             item { Spacer(modifier = Modifier.height(8.dp)) }
         }
 
-        // MINI PLAYER
         currentAlbum?.let {
             Reproductor(album = it, modifier = Modifier.align(Alignment.BottomCenter))
         }
@@ -191,34 +198,23 @@ fun AlbumCard(album: Album, onClick: () -> Unit) {
         elevation = CardDefaults.cardElevation(6.dp)
     ) {
         Box {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(album.image)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = album.title,
-                contentScale = ContentScale.Crop,
+            AlbumImage(
+                url = album.getFullImageUrl(),
                 modifier = Modifier.fillMaxSize()
             )
-            // Overlay oscuro
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color(0xCC1A0A3D))
-                        )
-                    )
+                    .background(Brush.verticalGradient(
+                        colors = listOf(Color.Transparent, Color(0xCC1A0A3D))
+                    ))
             )
             Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(12.dp)
+                modifier = Modifier.align(Alignment.BottomStart).padding(12.dp)
             ) {
-                Text(album.title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1)
-                Text(album.artist, color = Color.White.copy(alpha = 0.75f), fontSize = 12.sp)
+                Text(album.title ?: "S/T", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1)
+                Text(album.artist ?: "Desconocido", color = Color.White.copy(alpha = 0.75f), fontSize = 12.sp)
             }
-            // Botón play circular
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -250,25 +246,18 @@ fun RecentlyPlayedItem(album: Album, onClick: () -> Unit) {
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            AsyncImage(
-                model = album.image,
-                contentDescription = album.title,
-                contentScale = ContentScale.Crop,
+            AlbumImage(
+                url = album.getFullImageUrl(),
                 modifier = Modifier
                     .size(52.dp)
                     .clip(RoundedCornerShape(8.dp))
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(album.title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = TextPrimary, maxLines = 1)
-                Text("${album.artist} • Popular Song", fontSize = 12.sp, color = TextSecondary, maxLines = 1)
+                Text(album.title ?: "S/T", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = TextPrimary, maxLines = 1)
+                Text("${album.artist ?: "Desconocido"} • Popular Song", fontSize = 12.sp, color = TextSecondary, maxLines = 1)
             }
-            Icon(
-                imageVector = Icons.Default.Menu,
-                contentDescription = null,
-                tint = TextSecondary,
-                modifier = Modifier.size(20.dp)
-            )
+            Icon(imageVector = Icons.Default.Menu, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(20.dp))
         }
     }
 }
